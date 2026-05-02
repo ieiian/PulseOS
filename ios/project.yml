@@ -1,0 +1,26 @@
+name: PulseOS
+options:
+  bundleIdPrefix: com.pulseos
+  deploymentTarget:
+    iOS: "17.0"
+packages: {}
+targets:
+  PulseOS:
+    type: application
+    platform: iOS
+    sources:
+      - PulseOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pulseos.app
+        PRODUCT_NAME: PulseOS
+        SWIFT_VERSION: 5.10
+        INFOPLIST_FILE: PulseOS/Info.plist
+    info:
+      path: PulseOS/Info.plist
+      properties:
+        CFBundleDisplayName: PulseOS
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+

@@ -1,0 +1,29 @@
+app:
+  name: PulseOS
+  env: development
+
+server:
+  port: 8080
+
+database:
+  driver: postgres
+  host: localhost
+  port: 5432
+  name: pulseos
+  user: pulseos
+  password: pulseos_password
+  sslmode: disable
+
+redis:
+  addr: localhost:6379
+
+object_storage:
+  endpoint: http://localhost:9000
+  bucket: pulseos-dev
+  access_key: pulseos
+  secret_key: pulseos_secret
+  use_ssl: false
+
+ai:
+  provider: mock
+  model: placeholder

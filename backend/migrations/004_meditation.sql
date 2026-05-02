@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS meditation_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL DEFAULT 1,
+    mode_key VARCHAR(32) NOT NULL,
+    duration_s INT NOT NULL DEFAULT 0,
+    audio_key VARCHAR(128) NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+

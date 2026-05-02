@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/**/build/
+
+# iOS
+ios/**/*.xcodeproj/
+ios/**/*.xcworkspace/
+ios/**/DerivedData/
+
+# Go
+backend/bin/
+backend/.cache/
+backend/coverage.out
+
+# Env
+*.env
+!.env.example
+backend/configs/env/*.env
+!backend/configs/env/*.env.example
+
+# Misc
+node_modules/
+tmp/
+

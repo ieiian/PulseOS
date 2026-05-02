@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pulseos-postgres
+    environment:
+      POSTGRES_USER: pulseos
+      POSTGRES_PASSWORD: pulseos_password
+      POSTGRES_DB: pulseos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d
+    networks:
+      - pulseos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulseos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pulseos-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pulseos-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-08-26T15-33-07Z
+    container_name: pulseos-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pulseos
+      MINIO_ROOT_PASSWORD: pulseos_secret
+      MINIO_DEFAULT_BUCKETS: pulseos-dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - pulseos-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    container_name: pulseos-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 pulseos pulseos_secret &&
+      mc mb --ignore-existing local/pulseos-dev
+      "
+    networks:
+      - pulseos-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  pulseos-network:
