@@ -1,5 +1,7 @@
 package activity
 
+import "time"
+
 type Intensity string
 
 const (
@@ -9,13 +11,15 @@ const (
 )
 
 type Record struct {
-	ID           string    `json:"id"`
-	Source       string    `json:"source"`
-	ActivityType string    `json:"activity_type"`
-	Steps        int       `json:"steps"`
-	Minutes      int       `json:"minutes"`
-	Intensity    Intensity `json:"intensity"`
-	CardioPoints int       `json:"cardio_points"`
+	ID           string     `json:"id"`
+	UserID       int64      `json:"user_id"`
+	Source       string     `json:"source"`
+	ActivityType string     `json:"activity_type"`
+	Steps        int        `json:"steps"`
+	Minutes      int        `json:"minutes"`
+	Intensity    Intensity  `json:"intensity"`
+	CardioPoints int        `json:"cardio_points"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type ManualRecordRequest struct {

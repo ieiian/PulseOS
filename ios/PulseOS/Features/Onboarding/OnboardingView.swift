@@ -24,7 +24,25 @@ struct OnboardingView: View {
                 GoalPickerView(selected: $profile.primaryGoal)
 
                 Button("完成设置") {
-                    onComplete(profile)
+                    Task {
+                        let dto = ProfileDTO(
+                            id: nil,
+                            name: profile.name,
+                            age: Int(profile.age) ?? 0,
+                            gender: profile.gender,
+                            heightCm: Int(profile.heightCM) ?? 0,
+                            weightKg: Int(profile.weightKG) ?? 0,
+                            primaryGoal: profile.primaryGoal,
+                            secondaryGoals: [],
+                            healthFlags: []
+                        )
+                        do {
+                            _ = try await APIContainer.shared.user.onboard(profile: dto)
+                        } catch {
+                            // 继续本地保存，后续同步
+                        }
+                        onComplete(profile)
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity, alignment: .center)
@@ -61,4 +79,3 @@ private struct GoalPickerView: View {
         }
     }
 }
-

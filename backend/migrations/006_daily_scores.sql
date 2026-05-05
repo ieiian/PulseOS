@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS daily_scores (
     activity_score INT NOT NULL DEFAULT 0,
     sleep_score INT NOT NULL DEFAULT 0,
     total_score INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, score_date)
 );
 

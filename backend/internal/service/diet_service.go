@@ -8,22 +8,25 @@ import (
 	"github.com/tse/PulseOS/backend/internal/ai"
 	"github.com/tse/PulseOS/backend/internal/domain/diet"
 	"github.com/tse/PulseOS/backend/internal/domain/user"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
 	"github.com/tse/PulseOS/backend/internal/ruleengine"
 )
 
 type DietService struct {
-	repo        *postgres.DietRepository
-	userRepo    *postgres.UserRepository
+	repo        DietRepo
+	userRepo    UserRepo
 	aiService   *ai.Service
 }
 
-func NewDietService(repo *postgres.DietRepository, userRepo *postgres.UserRepository, aiService *ai.Service) *DietService {
+func NewDietService(repo DietRepo, userRepo UserRepo, aiService *ai.Service) *DietService {
 	return &DietService{
 		repo:      repo,
 		userRepo:  userRepo,
 		aiService: aiService,
 	}
+}
+
+func (s *DietService) ListRecords(ctx context.Context) []diet.Record {
+	return s.repo.ListRecords(ctx)
 }
 
 func (s *DietService) GetTodayPlan(ctx context.Context) diet.TodayPlan {
@@ -92,9 +95,20 @@ func (s *DietService) Analyze(ctx context.Context, req diet.AnalyzeRequest) diet
 }
 
 func (s *DietService) QuickRecord(ctx context.Context, req diet.AnalyzeRequest) diet.Record {
-	_ = s.Analyze(ctx, req)
-	records := s.repo.ListRecords(ctx)
-	return records[len(records)-1]
+	foods := recognizeFoods(req)
+	total := 0
+	for _, item := range foods {
+		total += item.Calories
+	}
+
+	record := diet.Record{
+		ImageURL:       req.ImageURL,
+		MealType:       req.MealType,
+		Foods:          foods,
+		Recommendation: ruleengine.EvaluateDiet(s.userRepo.GetProfile(ctx), foods, calculateTargetCalories(s.userRepo.GetProfile(ctx))),
+		TotalCalories:  total,
+	}
+	return s.repo.SaveRecord(ctx, record)
 }
 
 func recognizeFoods(req diet.AnalyzeRequest) []diet.FoodItem {

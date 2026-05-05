@@ -1,5 +1,7 @@
 package meditation
 
+import "time"
+
 type BreathMode struct {
 	Key         string `json:"key"`
 	Title       string `json:"title"`
@@ -16,10 +18,12 @@ type SessionRequest struct {
 }
 
 type Session struct {
-	ID        string `json:"id"`
-	ModeKey   string `json:"mode_key"`
-	DurationS int    `json:"duration_s"`
-	AudioKey  string `json:"audio_key"`
+	ID         string    `json:"id"`
+	UserID     int64     `json:"user_id"`
+	ModeKey    string    `json:"mode_key"`
+	DurationS  int       `json:"duration_s"`
+	AudioKey   string    `json:"audio_key"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type TodaySummary struct {

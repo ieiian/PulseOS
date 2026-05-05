@@ -7,17 +7,17 @@ import (
 
 	"github.com/tse/PulseOS/backend/internal/ai"
 	"github.com/tse/PulseOS/backend/internal/handler"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
+	"github.com/tse/PulseOS/backend/internal/repository/memory"
 	"github.com/tse/PulseOS/backend/internal/service"
 )
 
 func TestHomeDashboardEndpoint(t *testing.T) {
-	userRepo := postgres.NewUserRepository()
-	dietRepo := postgres.NewDietRepository()
-	activityRepo := postgres.NewActivityRepository()
-	sleepRepo := postgres.NewSleepRepository()
-	meditationRepo := postgres.NewMeditationRepository()
-	scoreRepo := postgres.NewScoringRepository()
+	userRepo := memory.NewUserRepository()
+	dietRepo := memory.NewDietRepository()
+	activityRepo := memory.NewActivityRepository()
+	sleepRepo := memory.NewSleepRepository()
+	meditationRepo := memory.NewMeditationRepository()
+	scoreRepo := memory.NewScoringRepository()
 
 	dietService := service.NewDietService(dietRepo, userRepo, ai.NewService())
 	activityService := service.NewActivityService(activityRepo)

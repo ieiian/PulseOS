@@ -6,58 +6,100 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.pulseos.domain.model.BreathMode
+import com.pulseos.data.api.MeditationService
+import com.pulseos.data.dto.BreathModeDTO
+import com.pulseos.data.dto.MeditationTodaySummaryDTO
 
 @Composable
-fun MeditationScreen() {
-    val controller = remember { MeditationAudioController() }
-    var selectedMode by remember { mutableStateOf(defaultModes().first()) }
-    var isPlaying by remember { mutableStateOf(controller.isPlaying()) }
+fun MeditationScreen(service: MeditationService) {
+    var summary by remember { mutableStateOf<MeditationTodaySummaryDTO?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var selectedMode by remember { mutableStateOf<BreathModeDTO?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            val result = service.getTodaySummary()
+            summary = result
+            if (result.modes.isNotEmpty() && selectedMode == null) {
+                selectedMode = result.modes.first()
+            }
+        } catch (e: Exception) {
+            error = e.message
+        } finally {
+            isLoading = false
+        }
+    }
 
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        MeditationCard("今日冥想", "已完成 10 分钟，1 次训练")
-        MeditationCard(
-            selectedMode.title,
-            "吸气 ${selectedMode.inhaleSec}s · 停顿 ${selectedMode.holdSec}s · 呼气 ${selectedMode.exhaleSec}s\n${selectedMode.description}",
-        )
+        if (summary != null) {
+            val s = summary!!
+            MeditationCard("今日冥想", "已完成 ${s.totalDurationS / 60} 分钟，${s.completedCount} 次训练")
+
+            if (s.recentSessions.isNotEmpty()) {
+                s.recentSessions.forEach { session ->
+                    MeditationCard("冥想记录", "${session.modeKey} · ${session.durationS / 60} 分钟")
+                }
+            }
+        }
+
+        if (selectedMode != null) {
+            val mode = selectedMode!!
+            MeditationCard(
+                mode.title,
+                "吸气 ${mode.inhaleSec}s · 停顿 ${mode.holdSec}s · 呼气 ${mode.exhaleSec}s\n${mode.description}",
+            )
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                controller.toggle()
-                isPlaying = controller.isPlaying()
-            }) {
+            Button(onClick = { isPlaying = !isPlaying }) {
                 Text(if (isPlaying) "暂停音频" else "播放音频")
             }
             Button(onClick = {}) {
                 Text("开始呼吸")
             }
         }
-        defaultModes().forEach { mode ->
-            Button(onClick = { selectedMode = mode }, modifier = Modifier.fillMaxWidth()) {
+
+        summary?.modes?.forEach { mode ->
+            Button(
+                onClick = { selectedMode = mode },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(mode.title)
             }
         }
+
+        if (isLoading && summary == null) {
+            CircularProgressIndicator()
+        }
+
+        if (error != null) {
+            MeditationCard("加载失败", error!!)
+        }
     }
 }
-
-private fun defaultModes(): List<BreathMode> = listOf(
-    BreathMode("calm", "平静呼吸", 4, 2, 6, "适合放慢节奏，降低紧绷感。"),
-    BreathMode("focus", "专注呼吸", 4, 4, 4, "适合进入工作或学习状态前。"),
-    BreathMode("sleep", "睡前呼吸", 4, 7, 8, "适合睡前稳定呼吸节律。"),
-)
 
 @Composable
 private fun MeditationCard(title: String, body: String) {
@@ -72,4 +114,3 @@ private fun MeditationCard(title: String, body: String) {
         Text(body, style = MaterialTheme.typography.bodyMedium)
     }
 }
-

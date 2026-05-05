@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS sleep_records (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL DEFAULT 1,
+    status VARCHAR(32) NOT NULL DEFAULT 'completed',
     started_at TIMESTAMPTZ,
     ended_at TIMESTAMPTZ,
     duration_m INT NOT NULL DEFAULT 0,

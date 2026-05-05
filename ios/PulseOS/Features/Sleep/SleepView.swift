@@ -1,54 +1,115 @@
 import SwiftUI
 
+@MainActor
+final class SleepViewModel: ObservableObject {
+    @Published var summary: SleepTodaySummaryDTO?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let service: SleepService
+
+    init(service: SleepService) {
+        self.service = service
+    }
+
+    func loadToday() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            summary = try await service.getToday()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func startSession(audioURL: String = "") async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            _ = try await service.startSession(audioURL: audioURL)
+            await loadToday()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func endSession() async {
+        guard let id = summary?.session.id, !id.isEmpty else {
+            errorMessage = "没有进行中的睡眠会话"
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            _ = try await service.endSession(sessionID: id)
+            await loadToday()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
 struct SleepView: View {
-    @StateObject private var controller = SleepMonitorController()
+    @StateObject private var monitor = SleepMonitorController()
+    @StateObject private var viewModel: SleepViewModel
+
+    init(service: SleepService = APIContainer.shared.sleep) {
+        _viewModel = StateObject(wrappedValue: SleepViewModel(service: service))
+    }
 
     var body: some View {
-        let summary = SleepSummary(
-            durationMinutes: 430,
-            score: 55,
-            advice: "昨夜呼噜/梦话事件偏多，建议连续观察几晚并避免睡前饮酒。",
-            isRecording: controller.isRecording
-        )
-        let events = [
-            SleepEvent(type: "snore", timestamp: "01:12", level: "medium"),
-            SleepEvent(type: "talk", timestamp: "03:46", level: "low"),
-            SleepEvent(type: "snore", timestamp: "05:21", level: "high"),
-        ]
-
-        return ScrollView {
+        ScrollView {
             VStack(spacing: 12) {
-                SleepCard(title: "昨夜概览", body: "\(summary.durationMinutes) 分钟 · 评分 \(summary.score)")
-                SleepCard(title: "睡前建议", body: summary.advice)
-                Button(controller.isRecording ? "结束监测" : "开始睡眠") {
-                    if controller.isRecording {
-                        controller.stop()
-                    } else {
-                        controller.start()
+                if let summary = viewModel.summary {
+                    let session = summary.session
+                    SleepCard(title: "昨夜概览", content: "\(session.durationM) 分钟 · 评分 \(session.score)")
+                    if !session.advice.isEmpty {
+                        SleepCard(title: "睡前建议", content: session.advice)
+                    }
+
+                    ForEach(summary.events, id: \.timestamp) { event in
+                        SleepCard(title: "事件时间轴", content: "\(event.timestamp) · \(event.type) · \(event.level)")
+                    }
+                } else if viewModel.isLoading {
+                    ProgressView("加载中...")
+                }
+
+                Button(monitor.isRecording ? "结束监测" : "开始睡眠") {
+                    Task {
+                        if monitor.isRecording {
+                            monitor.stop()
+                            await viewModel.endSession()
+                        } else {
+                            monitor.start()
+                            await viewModel.startSession()
+                        }
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                ForEach(events) { event in
-                    SleepCard(title: "事件时间轴", body: "\(event.timestamp) · \(event.type) · \(event.level)")
+                if let error = viewModel.errorMessage {
+                    SleepCard(title: "错误", content: error)
                 }
             }
             .padding(16)
         }
         .background(PulseTheme.background)
+        .task {
+            await viewModel.loadToday()
+        }
     }
 }
 
 private struct SleepCard: View {
     let title: String
-    let body: String
+    let content: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-            Text(body)
+            Text(content)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -57,4 +118,3 @@ private struct SleepCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
-

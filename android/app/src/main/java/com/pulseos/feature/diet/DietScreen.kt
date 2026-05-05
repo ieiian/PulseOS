@@ -6,66 +6,77 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AssistChip
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.pulseos.domain.model.DietPlanOption
-import com.pulseos.domain.model.DietStatus
+import com.pulseos.data.api.DietService
+import com.pulseos.data.dto.DietRecordDTO
+import com.pulseos.data.dto.TodayPlanDTO
 
 @Composable
-fun DietScreen() {
-    val status = DietStatus(
-        recommendation = "caution",
-        summary = "识别到鸡胸肉沙拉和糙米饭，总热量约 480 千卡。",
-        explanation = "适合正餐，但要注意当天总热量和晚间加餐。",
-    )
+fun DietScreen(service: DietService) {
+    var plan by remember { mutableStateOf<TodayPlanDTO?>(null) }
+    var records by remember { mutableStateOf<List<DietRecordDTO>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-    val options = listOf(
-        DietPlanOption("高蛋白午餐", "控制主食份量，优先蛋白质和蔬菜。", listOf("鸡胸肉", "西兰花", "糙米饭")),
-        DietPlanOption("常用早餐", "快速记录模板", listOf("无糖酸奶", "鸡蛋", "香蕉")),
-    )
-
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        DietCard("今日饮食目标", "目标热量 1900 千卡，轻断食窗口 12:00 - 20:00")
-        RecommendationCard(status)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {}) { Text("拍照分析") }
-            Button(onClick = {}) { Text("快速记录") }
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            plan = service.getTodayPlan()
+            records = service.listRecords()
+        } catch (e: Exception) {
+            error = e.message
+        } finally {
+            isLoading = false
         }
-        options.forEach { option ->
-            DietCard(option.title, "${option.description}\n${option.items.joinToString(" / ")}")
-        }
-    }
-}
-
-@Composable
-private fun RecommendationCard(status: DietStatus) {
-    val (label, bg) = when (status.recommendation) {
-        "recommended" -> "建议食用" to Color(0xFFDFF3E3)
-        "not_recommended" -> "不建议食用" to Color(0xFFFBE3D8)
-        "forbidden" -> "禁止食用" to Color(0xFFF7D4D8)
-        else -> "注意食用" to Color(0xFFFCEFC7)
     }
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(bg, RoundedCornerShape(20.dp))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        AssistChip(onClick = {}, label = { Text(label) })
-        Text(status.summary, style = MaterialTheme.typography.titleMedium)
-        Text(status.explanation, style = MaterialTheme.typography.bodyMedium)
+        if (plan != null) {
+            val p = plan!!
+            DietCard("今日饮食目标", "目标热量 ${p.targetCalories} 千卡 · ${p.fastingPlan.name} ${p.fastingPlan.window}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {}) { Text("拍照分析") }
+                Button(onClick = {}) { Text("快速记录") }
+            }
+            p.options.forEach { option ->
+                DietCard(option.title, "${option.description}\n${option.items.joinToString(" / ")}")
+            }
+            if (p.commonMeals.isNotEmpty()) {
+                DietCard("常用饮食", p.commonMeals.joinToString("\n") { "${it.title}: ${it.items.joinToString(" / ")}" })
+            }
+        } else if (isLoading) {
+            CircularProgressIndicator()
+        }
+
+        if (records.isNotEmpty()) {
+            records.forEach { record ->
+                val foods = record.foods.joinToString("、") { "${it.name} ${it.calories}千卡" }
+                DietCard("饮食记录", "${record.mealType ?: "未分类"} · ${record.totalCalories} 千卡\n$foods")
+            }
+        }
+
+        if (error != null) {
+            DietCard("加载失败", error!!)
+        }
     }
 }
 
@@ -82,4 +93,3 @@ private fun DietCard(title: String, body: String) {
         Text(body, style = MaterialTheme.typography.bodyMedium)
     }
 }
-

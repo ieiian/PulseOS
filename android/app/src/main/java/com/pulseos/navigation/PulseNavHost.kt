@@ -14,9 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.pulseos.app.AppContainer
 import com.pulseos.core.storage.ProfileLocalStore
 import com.pulseos.feature.activity.ActivityScreen
-import com.pulseos.feature.activity.AndroidStepReader
 import com.pulseos.feature.diet.DietScreen
 import com.pulseos.feature.home.HomeScreen
 import com.pulseos.feature.meditation.MeditationScreen
@@ -25,10 +25,9 @@ import com.pulseos.feature.sleep.SleepScreen
 import com.pulseos.feature.user.UserScreen
 
 @Composable
-fun PulseNavHost() {
+fun PulseNavHost(container: AppContainer) {
     val context = LocalContext.current
     val store = remember { ProfileLocalStore(context) }
-    val stepReader = remember { AndroidStepReader(context) }
     var profile by remember { mutableStateOf(store.load()) }
     var tab by remember { mutableStateOf("home") }
     val onboardingComplete = profile.name.isNotBlank()
@@ -36,6 +35,7 @@ fun PulseNavHost() {
     if (!onboardingComplete) {
         OnboardingScreen(
             initialProfile = profile,
+            container = container,
             onComplete = {
                 profile = it
                 store.save(it)
@@ -68,12 +68,12 @@ fun PulseNavHost() {
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             when (tab) {
-                "activity" -> ActivityScreen(stepPreview = stepReader.getPreviewSteps())
-                "diet" -> DietScreen()
-                "meditation" -> MeditationScreen()
-                "sleep" -> SleepScreen()
-                "user" -> UserScreen(profile)
-                else -> HomeScreen(profile)
+                "activity" -> ActivityScreen(container.activity)
+                "diet" -> DietScreen(container.diet)
+                "meditation" -> MeditationScreen(container.meditation)
+                "sleep" -> SleepScreen(container.sleep)
+                "user" -> UserScreen(profile, container.user)
+                else -> HomeScreen(profile, container.home)
             }
         }
     }

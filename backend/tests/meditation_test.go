@@ -9,12 +9,12 @@ import (
 
 	"github.com/tse/PulseOS/backend/internal/domain/meditation"
 	"github.com/tse/PulseOS/backend/internal/handler"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
+	"github.com/tse/PulseOS/backend/internal/repository/memory"
 	"github.com/tse/PulseOS/backend/internal/service"
 )
 
 func TestMeditationSessionEndpoint(t *testing.T) {
-	repo := postgres.NewMeditationRepository()
+	repo := memory.NewMeditationRepository()
 	svc := service.NewMeditationService(repo)
 	h := handler.NewMeditationHandler(svc)
 	mux := http.NewServeMux()

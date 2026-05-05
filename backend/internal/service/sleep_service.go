@@ -4,15 +4,14 @@ import (
 	"context"
 
 	"github.com/tse/PulseOS/backend/internal/domain/sleep"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
 	"github.com/tse/PulseOS/backend/internal/ruleengine"
 )
 
 type SleepService struct {
-	repo *postgres.SleepRepository
+	repo SleepRepo
 }
 
-func NewSleepService(repo *postgres.SleepRepository) *SleepService {
+func NewSleepService(repo SleepRepo) *SleepService {
 	return &SleepService{repo: repo}
 }
 

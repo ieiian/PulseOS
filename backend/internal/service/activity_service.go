@@ -4,16 +4,19 @@ import (
 	"context"
 
 	"github.com/tse/PulseOS/backend/internal/domain/activity"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
 	"github.com/tse/PulseOS/backend/internal/ruleengine"
 )
 
 type ActivityService struct {
-	repo *postgres.ActivityRepository
+	repo ActivityRepo
 }
 
-func NewActivityService(repo *postgres.ActivityRepository) *ActivityService {
+func NewActivityService(repo ActivityRepo) *ActivityService {
 	return &ActivityService{repo: repo}
+}
+
+func (s *ActivityService) ListRecords(ctx context.Context) []activity.Record {
+	return s.repo.ListRecords(ctx)
 }
 
 func (s *ActivityService) RecordManualActivity(ctx context.Context, req activity.ManualRecordRequest) activity.Record {
@@ -61,19 +64,33 @@ func (s *ActivityService) GetWeekSummary(ctx context.Context) activity.WeekSumma
 		total += record.CardioPoints
 	}
 
+	weeklyGoal := 150
 	status := "on_track"
-	if total >= 150 {
+	if total >= weeklyGoal {
 		status = "achieved"
 	}
 
-	return activity.WeekSummary{
-		DailyPoints: []int{12, 18, 0, 35, 20, 24, total},
-		TotalPoints: total,
-		WeeklyGoal:  150,
-		Status:      status,
-		Tips: []string{
-			"优先补足中等强度分钟数。",
+	dailyPoints := s.repo.ListDailyPoints(ctx)
+
+	var tips []string
+	if total < weeklyGoal/2 {
+		tips = []string{
+			"本周活动量偏低，建议每天安排 20 分钟快走。",
 			"工作日安排短时快走，比周末突击更稳定。",
-		},
+		}
+	} else if total < weeklyGoal {
+		tips = []string{
+			"距离周目标还差 " + itoa(weeklyGoal-total) + " 分，继续加油。",
+		}
+	} else {
+		tips = []string{"本周目标已达成，保持节奏。"}
+	}
+
+	return activity.WeekSummary{
+		DailyPoints: dailyPoints,
+		TotalPoints: total,
+		WeeklyGoal:  weeklyGoal,
+		Status:      status,
+		Tips:        tips,
 	}
 }

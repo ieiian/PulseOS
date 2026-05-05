@@ -2,6 +2,7 @@ package scoring
 
 type DailyScore struct {
 	Date          string `json:"date"`
+	UserID        int64  `json:"user_id"`
 	DietScore     int    `json:"diet_score"`
 	ActivityScore int    `json:"activity_score"`
 	SleepScore    int    `json:"sleep_score"`

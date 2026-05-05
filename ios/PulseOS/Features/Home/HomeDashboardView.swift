@@ -1,44 +1,74 @@
 import SwiftUI
 
+@MainActor
+final class HomeDashboardViewModel: ObservableObject {
+    @Published var dashboard: DashboardDTO?
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let service: HomeService
+
+    init(service: HomeService) {
+        self.service = service
+    }
+
+    func loadDashboard() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            dashboard = try await service.getDashboard()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+}
+
 struct HomeDashboardView: View {
     let profile: UserProfile
-    private let dashboard = HomeDashboard(
-        totalScore: 67,
-        actionItem: "优先完成今天的运动积分和一次饮食记录。",
-        dietSummary: "目标热量 1900 千卡，已配置轻断食窗口。",
-        activitySummary: "今日 5620 步，心肺强化 75 分。",
-        sleepSummary: "昨夜评分 55，时长 430 分钟。",
-        meditationNote: "今日冥想 10 分钟。",
-        trends: [58, 63, 61, 70, 68, 74, 67]
-    )
+    @StateObject private var viewModel: HomeDashboardViewModel
+
+    init(profile: UserProfile, service: HomeService = APIContainer.shared.home) {
+        self.profile = profile
+        _viewModel = StateObject(wrappedValue: HomeDashboardViewModel(service: service))
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                HomeCard(title: "今日概览", body: "\(profile.name.isEmpty ? "你" : profile.name)，\(dashboard.actionItem)")
-                HomeCard(title: "今日总分", body: "\(dashboard.totalScore) 分")
-                HomeCard(title: "饮食", body: dashboard.dietSummary)
-                HomeCard(title: "运动", body: dashboard.activitySummary)
-                HomeCard(title: "睡眠", body: dashboard.sleepSummary)
-                HomeCard(title: "冥想", body: dashboard.meditationNote)
-                HomeCard(title: "趋势", body: dashboard.trends.map(String.init).joined(separator: " / "))
+                if let dashboard = viewModel.dashboard {
+                    HomeCard(title: "今日概览", content: "\(profile.name.isEmpty ? "你" : profile.name)，\(dashboard.actionItem)")
+                    HomeCard(title: "今日总分", content: "\(dashboard.today.totalScore) 分")
+                    HomeCard(title: "饮食", content: dashboard.dietSummary)
+                    HomeCard(title: "运动", content: dashboard.activitySummary)
+                    HomeCard(title: "睡眠", content: dashboard.sleepSummary)
+                    HomeCard(title: "冥想", content: dashboard.meditationNote)
+                    HomeCard(title: "趋势", content: dashboard.trends.map(String.init).joined(separator: " / "))
+                } else if viewModel.isLoading {
+                    ProgressView("加载中...")
+                } else if let error = viewModel.errorMessage {
+                    HomeCard(title: "错误", content: error)
+                }
             }
             .padding(16)
         }
         .background(PulseTheme.background)
+        .task {
+            await viewModel.loadDashboard()
+        }
     }
 }
 
 
 private struct HomeCard: View {
     let title: String
-    let body: String
+    let content: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-            Text(body)
+            Text(content)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -5,53 +5,104 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.pulseos.domain.model.SleepEvent
-import com.pulseos.domain.model.SleepSummary
+import com.pulseos.data.api.SleepService
+import com.pulseos.data.dto.SleepSessionDTO
+import com.pulseos.data.dto.SleepTodaySummaryDTO
+import kotlinx.coroutines.launch
 
 @Composable
-fun SleepScreen() {
-    val controller = remember { SleepMonitorController() }
-    var isRecording by remember { mutableStateOf(controller.isRecording()) }
-    val summary = SleepSummary(
-        durationMinutes = 430,
-        score = 55,
-        advice = "昨夜呼噜/梦话事件偏多，建议连续观察几晚并避免睡前饮酒。",
-        isRecording = isRecording,
-    )
-    val events = listOf(
-        SleepEvent("snore", "01:12", "medium"),
-        SleepEvent("talk", "03:46", "low"),
-        SleepEvent("snore", "05:21", "high"),
-    )
+fun SleepScreen(service: SleepService) {
+    var today by remember { mutableStateOf<SleepTodaySummaryDTO?>(null) }
+    var activeSession by remember { mutableStateOf<SleepSessionDTO?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            val result = service.getToday()
+            today = result
+            if (result.session.status == "in_progress") {
+                activeSession = result.session
+            }
+        } catch (e: Exception) {
+            error = e.message
+        } finally {
+            isLoading = false
+        }
+    }
 
     Column(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SleepCard("昨夜概览", "${summary.durationMinutes} 分钟 · 评分 ${summary.score}")
-        SleepCard("睡前建议", summary.advice)
+        if (today != null) {
+            val t = today!!
+            val session = t.session
+
+            if (session.status == "completed") {
+                SleepCard("昨夜概览", "${session.durationM} 分钟 · 评分 ${session.score}")
+                if (session.advice.isNotBlank()) {
+                    SleepCard("睡前建议", session.advice)
+                }
+            }
+
+            if (t.events.isNotEmpty()) {
+                t.events.forEach { event ->
+                    SleepCard("事件时间轴", "${event.timestamp} · ${event.type} · ${event.level}")
+                }
+            }
+        }
+
+        val isTracking = activeSession != null
         Button(
             onClick = {
-                if (isRecording) controller.stop() else controller.start()
-                isRecording = controller.isRecording()
+                scope.launch {
+                    try {
+                        if (isTracking) {
+                            val session = activeSession ?: return@launch
+                            val result = service.endSession(session.id)
+                            activeSession = null
+                            today = today?.copy(session = result) ?: SleepTodaySummaryDTO(result, emptyList())
+                        } else {
+                            val result = service.startSession()
+                            activeSession = result
+                        }
+                    } catch (e: Exception) {
+                        error = e.message
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (isRecording) "结束监测" else "开始睡眠")
+            Text(if (isTracking) "结束监测" else "开始睡眠")
         }
-        events.forEach { event ->
-            SleepCard("事件时间轴", "${event.timestamp} · ${event.type} · ${event.level}")
+
+        if (isLoading && today == null) {
+            CircularProgressIndicator()
+        }
+
+        if (error != null) {
+            SleepCard("错误", error!!)
         }
     }
 }
@@ -69,4 +120,3 @@ private fun SleepCard(title: String, body: String) {
         Text(body, style = MaterialTheme.typography.bodyMedium)
     }
 }
-

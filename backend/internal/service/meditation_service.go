@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/tse/PulseOS/backend/internal/domain/meditation"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
 )
 
 type MeditationService struct {
-	repo *postgres.MeditationRepository
+	repo MeditationRepo
 }
 
-func NewMeditationService(repo *postgres.MeditationRepository) *MeditationService {
+func NewMeditationService(repo MeditationRepo) *MeditationService {
 	return &MeditationService{repo: repo}
 }
 

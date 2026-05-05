@@ -9,12 +9,12 @@ import (
 
 	"github.com/tse/PulseOS/backend/internal/domain/activity"
 	"github.com/tse/PulseOS/backend/internal/handler"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
+	"github.com/tse/PulseOS/backend/internal/repository/memory"
 	"github.com/tse/PulseOS/backend/internal/service"
 )
 
 func TestActivityRecordEndpoint(t *testing.T) {
-	repo := postgres.NewActivityRepository()
+	repo := memory.NewActivityRepository()
 	svc := service.NewActivityService(repo)
 	h := handler.NewActivityHandler(svc)
 	mux := http.NewServeMux()

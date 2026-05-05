@@ -4,14 +4,13 @@ import (
 	"context"
 
 	"github.com/tse/PulseOS/backend/internal/domain/user"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
 )
 
 type UserService struct {
-	repo *postgres.UserRepository
+	repo UserRepo
 }
 
-func NewUserService(repo *postgres.UserRepository) *UserService {
+func NewUserService(repo UserRepo) *UserService {
 	return &UserService{repo: repo}
 }
 

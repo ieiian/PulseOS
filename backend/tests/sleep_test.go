@@ -9,12 +9,12 @@ import (
 
 	"github.com/tse/PulseOS/backend/internal/domain/sleep"
 	"github.com/tse/PulseOS/backend/internal/handler"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
+	"github.com/tse/PulseOS/backend/internal/repository/memory"
 	"github.com/tse/PulseOS/backend/internal/service"
 )
 
 func TestSleepFlowEndpoints(t *testing.T) {
-	repo := postgres.NewSleepRepository()
+	repo := memory.NewSleepRepository()
 	svc := service.NewSleepService(repo)
 	h := handler.NewSleepHandler(svc)
 	mux := http.NewServeMux()

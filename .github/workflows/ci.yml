@@ -11,15 +11,42 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: pulseos
+          POSTGRES_PASSWORD: pulseos_password
+          POSTGRES_DB: pulseos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+      - name: Run migrations
+        run: |
+          for f in migrations/*.sql; do
+            PGPASSWORD=pulseos_password psql -h localhost -U pulseos -d pulseos -f "$f"
+          done
       - name: Go fmt check
         run: test -z "$(gofmt -l .)"
+      - name: Go vet
+        run: go vet ./...
       - name: Go build
         run: go build ./...
       - name: Go test
         run: go test ./...
-
+      - name: E2E smoke test
+        run: |
+          go run ./cmd/server &
+          SERVER_PID=$!
+          sleep 3
+          bash scripts/e2e_test.sh
+          kill $SERVER_PID

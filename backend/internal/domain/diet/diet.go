@@ -1,5 +1,7 @@
 package diet
 
+import "time"
+
 type Recommendation string
 
 const (
@@ -37,11 +39,13 @@ type AnalyzeResult struct {
 
 type Record struct {
 	ID             string         `json:"id"`
+	UserID         int64          `json:"user_id"`
 	ImageURL       string         `json:"image_url"`
 	MealType       string         `json:"meal_type"`
 	Foods          []FoodItem     `json:"foods"`
 	Recommendation Recommendation `json:"recommendation"`
 	TotalCalories  int            `json:"total_calories"`
+	CreatedAt      time.Time      `json:"created_at"`
 }
 
 type PlanOption struct {

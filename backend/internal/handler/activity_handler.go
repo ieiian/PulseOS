@@ -23,18 +23,19 @@ func (h *ActivityHandler) Register(mux *http.ServeMux) {
 }
 
 func (h *ActivityHandler) handleRecords(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, h.service.ListRecords(r.Context()))
+	case http.MethodPost:
+		var req activity.ManualRecordRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, h.service.RecordManualActivity(r.Context(), req))
+	default:
 		methodNotAllowed(w)
-		return
 	}
-
-	var req activity.ManualRecordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-		return
-	}
-
-	writeJSON(w, http.StatusCreated, h.service.RecordManualActivity(r.Context(), req))
 }
 
 func (h *ActivityHandler) handleToday(w http.ResponseWriter, r *http.Request) {

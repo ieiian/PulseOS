@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeRootView: View {
     @State private var profile = ProfileLocalStore().load()
-    private let stepReader = IOSStepReader()
 
     var body: some View {
         if profile.name.isEmpty {
@@ -22,7 +21,7 @@ struct HomeRootView: View {
                         Label("饮食", systemImage: "fork.knife")
                     }
 
-                ActivityView(stepPreview: stepReader.previewSteps())
+                ActivityView()
                     .tabItem {
                         Label("运动", systemImage: "figure.walk")
                     }

@@ -16,6 +16,12 @@ targets:
         PRODUCT_NAME: PulseOS
         SWIFT_VERSION: 5.10
         INFOPLIST_FILE: PulseOS/Info.plist
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SDKROOT: iphoneos
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        ONLY_ACTIVE_ARCH: YES
     info:
       path: PulseOS/Info.plist
       properties:
@@ -23,4 +29,19 @@ targets:
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+schemes:
+  PulseOS:
+    build:
+      targets:
+        PulseOS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
 

@@ -11,19 +11,19 @@ import (
 	"github.com/tse/PulseOS/backend/internal/domain/diet"
 	"github.com/tse/PulseOS/backend/internal/domain/user"
 	"github.com/tse/PulseOS/backend/internal/handler"
-	"github.com/tse/PulseOS/backend/internal/repository/postgres"
+	"github.com/tse/PulseOS/backend/internal/repository/memory"
 	"github.com/tse/PulseOS/backend/internal/service"
 )
 
 func TestDietAnalyzeEndpoint(t *testing.T) {
-	userRepo := postgres.NewUserRepository()
+	userRepo := memory.NewUserRepository()
 	userRepo.SaveProfile(t.Context(), user.Profile{
 		Name:        "Test",
 		PrimaryGoal: user.GoalFatLoss,
 		HealthFlags: []string{"diabetes"},
 	})
 
-	dietRepo := postgres.NewDietRepository()
+	dietRepo := memory.NewDietRepository()
 	dietService := service.NewDietService(dietRepo, userRepo, ai.NewService())
 	dietHandler := handler.NewDietHandler(dietService)
 
